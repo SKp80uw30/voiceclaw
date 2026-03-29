@@ -19,15 +19,14 @@
 
 ### 1.2 — Pipecat Adapter Layer
 
-- [ ] `voice/adapters/events.py` — `OrbState` enum (`idle | listening | thinking | tool_running | speaking`) + map from Pipecat frame types to OrbState transitions
-  - Resolve open question: which exact Pipecat frame types map to each state? Document answer in `docs/architecture/pipecat-frame-mapping.md`
-- [ ] `voice/adapters/transport.py` — WebRTC transport adapter wrapping `pipecat[webrtc]`
-  - Resolve open question: does Pipecat's WebRTC transport support push-to-talk cleanly? Document answer.
-- [ ] `voice/adapters/pipeline.py` — `VoiceClawPipeline` class
-  - Default component chain: SileroVAD → Deepgram STT → OpenRouterLLM → CartesiaTTS
-  - Exposes `on_state_change(state: OrbState)` event
-  - Exposes `on_transcript(text: str)` for routing to OpenClaw
-  - All config from env vars only
+- [x] `voice/adapters/events.py` — `OrbState` enum + `OrbStateObserver` (BaseObserver subclass)
+  - Frame→state mapping confirmed from Pipecat source. Documented in `voice/CLAUDE.md`.
+- [x] `voice/adapters/transport.py` — WebRTC transport adapter (`create_connection`, `create_transport`)
+  - `SmallWebRTCTransport` supports the pattern cleanly. Audio-only params set.
+- [x] `voice/adapters/pipeline.py` — `VoiceClawPipeline` + `OpenClawBridgeProcessor`
+  - Chain: transport.input → STT → OpenClawBridgeProcessor → TTS → transport.output
+  - `OpenClawBridgeProcessor` replaces LLM slot; calls `on_transcript` callback to OpenClaw
+  - All config from env vars. 12/12 tests passing.
 
 ### 1.3 — OpenClaw Adapter Layer
 
