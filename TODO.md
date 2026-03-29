@@ -30,11 +30,11 @@
 
 ### 1.3 — OpenClaw Adapter Layer
 
-- [ ] `agent/adapters/skills.py` — scans `skills/` dir, loads relevant `SKILL.md` files into OpenClaw context
-- [ ] `agent/adapters/session.py` — per-user session lifecycle management
-- [ ] `agent/adapters/gateway.py` — HTTP bridge (`POST /transcript` → OpenClaw WebChat → returns spoken text)
-  - Resolve open question: does OpenClaw WebChat accept plain HTTP POST or require WebSocket? Document answer.
-  - Resolve open question: does Pipecat's OpenRouter provider support streaming tool calls? Document answer.
+- [x] `agent/adapters/skills.py` — scans `skills/` for SKILL.md files, returns concatenated context string
+- [x] `agent/adapters/session.py` — per-session lifecycle, derives session key from pc_id, injects skills
+- [x] `agent/adapters/gateway.py` — WebSocket client, full v3 challenge/sign/hello-ok handshake,
+  chat.send + delta event collection. 25/25 tests passing.
+- [x] `agent/adapters/device.py` — Ed25519 device identity (mirrors OpenClaw TS reference exactly)
 
 ### 1.4 — Pipecat Server
 
