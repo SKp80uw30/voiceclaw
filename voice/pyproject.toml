@@ -1,0 +1,40 @@
+[project]
+name = "voiceclaw-voice"
+version = "0.1.0"
+description = "VoiceClaw voice pipeline — Pipecat adapter layer and FastAPI server"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    # pipecat-ai source is declared in [tool.uv.sources] below
+    "pipecat-ai[webrtc,deepgram,cartesia,silero]",
+    "fastapi[standard]>=0.115",
+    "loguru>=0.7",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv.sources]
+# Point at our local upstream fork rather than PyPI
+pipecat-ai = { path = "upstream/pipecat" }
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "anyio[trio]>=4",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["adapters/tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["adapters", "voiceclaw"]
