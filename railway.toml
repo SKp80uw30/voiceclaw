@@ -1,0 +1,34 @@
+[railway]
+# VoiceClaw — Railway Phase 1
+# Two services built from this monorepo.
+
+[railway.service.voice_service]
+dockerfile = "voice/Dockerfile"
+build.context = "."
+internalPort = 8000
+variables = [
+  "OPENCLAW_GATEWAY_URL",
+  "OPENCLAW_GATEWAY_TOKEN",
+  "OPENROUTER_API_KEY",
+  "OPENCLAW_MODEL",
+  "DEEPGRAM_API_KEY",
+  "CARTESIA_API_KEY",
+  "LOG_LEVEL",
+]
+OPENCLAW_GATEWAY_URL = "ws://agent_service.railway-app.internal:18789"
+
+[railway.service.voice_service.volume]
+mountPath = "/home/node/.voiceclaw"
+
+[railway.service.agent_service]
+dockerfile = "agent/Dockerfile"
+build.context = "./agent"
+internalPort = 18789
+variables = [
+  "OPENCLAW_GATEWAY_TOKEN",
+  "OPENROUTER_API_KEY",
+  "OPENCLAW_MODEL",
+]
+
+[railway.service.agent_service.volume]
+mountPath = "/home/node/.openclaw"
