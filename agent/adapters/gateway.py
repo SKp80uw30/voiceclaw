@@ -33,7 +33,7 @@ import websockets
 import websockets.asyncio.client as ws_client
 from loguru import logger
 
-from adapters.device import (
+from .device import (
     VOICECLAW_CLIENT_ID,
     VOICECLAW_CLIENT_VERSION,
     VOICECLAW_PLATFORM,
@@ -68,11 +68,21 @@ _PROTOCOL_VERSION = 3
 _DEFAULT_GATEWAY_URL = "ws://localhost:18789"
 _SCOPES = ["operator.read", "operator.write"]
 _ROLE = "operator"
-_CLIENT_MODE = "operator"
+_CLIENT_MODE = "backend"
 
 # How long to wait for the gateway to respond (connect + chat turns)
 _CONNECT_TIMEOUT_S = 10.0
 _CHAT_TIMEOUT_S = 60.0
+
+# Set OPENCLAW_DEVICE_AUTH_DISABLED=true when the gateway is configured with
+# gateway.controlUi.dangerouslyDisableDeviceAuth=true (e.g. in Docker dev).
+# In that case the device object is omitted from the handshake since the
+# voice server has no persistent Ed25519 identity across container restarts.
+_DISABLE_DEVICE_AUTH = os.getenv("OPENCLAW_DEVICE_AUTH_DISABLED", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 
 class GatewayError(Exception):
@@ -220,49 +230,54 @@ class OpenClawGatewayClient:
         challenge = await challenge_fut
         nonce: str = challenge["nonce"]
 
-        # Step 2: sign the payload and send connect request
-        signed_at_ms = int(time.time() * 1000)
-        payload_str = build_auth_payload_v3(
-            device_id=self._identity.device_id,
-            client_id=VOICECLAW_CLIENT_ID,
-            client_mode=_CLIENT_MODE,
-            role=_ROLE,
-            scopes=_SCOPES,
-            signed_at_ms=signed_at_ms,
-            token=self._token,
-            nonce=nonce,
-            platform=VOICECLAW_PLATFORM,
-        )
-        signature = sign_payload(self._identity, payload_str)
-
-        await self._request(
-            "connect",
-            {
-                "minProtocol": _PROTOCOL_VERSION,
-                "maxProtocol": _PROTOCOL_VERSION,
-                "client": {
-                    "id": VOICECLAW_CLIENT_ID,
-                    "version": VOICECLAW_CLIENT_VERSION,
-                    "platform": VOICECLAW_PLATFORM,
-                    "mode": _CLIENT_MODE,
-                },
-                "role": _ROLE,
-                "scopes": _SCOPES,
-                "caps": [],
-                "commands": [],
-                "permissions": {},
-                "auth": {"token": self._token} if self._token else {},
-                "locale": "en-US",
-                "userAgent": f"voiceclaw/{VOICECLAW_CLIENT_VERSION}",
-                "device": {
-                    "id": self._identity.device_id,
-                    "publicKey": public_key_base64url(self._identity),
-                    "signature": signature,
-                    "signedAt": signed_at_ms,
-                    "nonce": nonce,
-                },
+        # Step 2: build connect params
+        connect_params: dict = {
+            "minProtocol": _PROTOCOL_VERSION,
+            "maxProtocol": _PROTOCOL_VERSION,
+            "client": {
+                "id": VOICECLAW_CLIENT_ID,
+                "version": VOICECLAW_CLIENT_VERSION,
+                "platform": VOICECLAW_PLATFORM,
+                "mode": _CLIENT_MODE,
             },
-        )
+            "role": _ROLE,
+            "scopes": _SCOPES,
+            "caps": [],
+            "commands": [],
+            "permissions": {},
+            "auth": {"token": self._token} if self._token else {},
+            "locale": "en-US",
+            "userAgent": f"voiceclaw/{VOICECLAW_CLIENT_VERSION}",
+        }
+
+        # Include device identity only when device auth is enabled.
+        # When OPENCLAW_DEVICE_AUTH_DISABLED=true (Docker dev with
+        # gateway.controlUi.dangerouslyDisableDeviceAuth=true), the
+        # device object is omitted because the voice server has no
+        # persistent Ed25519 identity across container restarts.
+        if not _DISABLE_DEVICE_AUTH:
+            signed_at_ms = int(time.time() * 1000)
+            payload_str = build_auth_payload_v3(
+                device_id=self._identity.device_id,
+                client_id=VOICECLAW_CLIENT_ID,
+                client_mode=_CLIENT_MODE,
+                role=_ROLE,
+                scopes=_SCOPES,
+                signed_at_ms=signed_at_ms,
+                token=self._token,
+                nonce=nonce,
+                platform=VOICECLAW_PLATFORM,
+            )
+            signature = sign_payload(self._identity, payload_str)
+            connect_params["device"] = {
+                "id": self._identity.device_id,
+                "publicKey": public_key_base64url(self._identity),
+                "signature": signature,
+                "signedAt": signed_at_ms,
+                "nonce": nonce,
+            }
+
+        await self._request("connect", connect_params)
         logger.debug("OpenClawGateway: handshake complete")
 
     # ------------------------------------------------------------------

@@ -38,12 +38,12 @@
 
 ### 1.4 — Pipecat Server
 
-- [ ] `voice/voiceclaw/server.py` — FastAPI app
+- [x] `voice/voiceclaw/server.py` — FastAPI app
   - `GET /` → serves PWA `index.html`
   - `POST /offer` → WebRTC SDP offer/answer
   - `GET /state` → SSE stream of OrbState events
   - On new WebRTC connection: instantiate `VoiceClawPipeline`, connect to OpenClaw gateway
-- [ ] `voice/pyproject.toml` (uv) — all Python deps declared
+- [x] `voice/pyproject.toml` (uv) — all Python deps declared
 
 ### 1.5 — PWA Orb UI (see investigation note below)
 
@@ -56,26 +56,26 @@
 > **Decision needed from owner before starting 1.5.** Default plan below assumes Option A.
 
 - [x] **Owner decision recorded:** Option A — use `ConsoleTemplate` for Phase 1 MVP. Custom floating orb deferred to Phase 3.
-- [ ] Scaffold `pwa/` with Vite + React + Tailwind 4
-- [ ] Install `@pipecat-ai/voice-ui-kit`, `@pipecat-ai/client-react`, `@pipecat-ai/client-js`, `small-webrtc`
-- [ ] **(Option A)** Wrap `ConsoleTemplate` + `ThemeProvider`, point at Pipecat server `/offer` endpoint
+- [x] Scaffold `pwa/` with Vite + React + Tailwind 4
+- [x] Install `@pipecat-ai/voice-ui-kit`, `@pipecat-ai/client-react`, `@pipecat-ai/client-js`, `small-webrtc`
+- [x] **(Option A)** Wrap `ConsoleTemplate` + `ThemeProvider`, point at Pipecat server `/offer` endpoint
 - [ ] **(Option B)** Build custom floating orb, wire 5 OrbStates to CSS animations, subscribe to `/state` SSE
-- [ ] `pwa/vite.config.ts` — `vite-plugin-pwa` for manifest + service worker
+- [x] `pwa/vite.config.ts` — `vite-plugin-pwa` for manifest + service worker
 
 ### 1.6 — Local Dev
 
-- [ ] `docker-compose.yml` at repo root
+- [x] `docker-compose.yml` at repo root
   - `pipecat-backend` service: `./voice`, port 8000
   - `openclaw-gateway` service: `./agent`, port 18789
   - Both consume `.env`
-- [ ] `voice/Dockerfile`
-- [ ] `agent/Dockerfile`
-- [ ] Smoke test: `docker compose up` → no errors, PWA loads at `http://localhost:8000`
+- [x] `voice/Dockerfile`
+- [x] `agent/Dockerfile`
+- [x] Smoke test: `docker compose up` → no errors, PWA loads at `http://localhost:8000`
 
 ### 1.7 — Railway Phase 1
 
-- [ ] `infra/railway.toml`
-- [ ] `infra/docker-compose.railway.yml`
+- [x] `infra/railway.toml` — two-service config, persistent volumes, Railway internal DNS
+- [x] `infra/docker-compose.railway.yml` — production compose (no DEVICE_AUTH_DISABLED, proper device identity)
 - [ ] Deploy to Railway and verify deploy button works
 
 ### Phase 1 Acceptance Criteria

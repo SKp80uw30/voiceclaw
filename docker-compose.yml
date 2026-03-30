@@ -1,0 +1,90 @@
+# VoiceClaw — docker-compose.yml
+# SPDX-License-Identifier: MIT
+#
+# Local development stack. Requires a populated .env file (see .env.example).
+#
+# Usage:
+#   docker compose up --build   # first run or after source changes
+#   docker compose up           # subsequent runs (cached images)
+#   docker compose down         # stop and remove containers
+#
+# Services:
+#   pipecat-backend  — FastAPI + Pipecat voice pipeline  → http://localhost:8000
+#   openclaw-gateway — OpenClaw agent gateway            → ws://localhost:18789
+
+services:
+
+  # ── OpenClaw Gateway ────────────────────────────────────────────────────────
+  # Must start before pipecat-backend so the WebSocket endpoint is ready when
+  # the voice server accepts its first WebRTC connection.
+  openclaw-gateway:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Gateway token for the challenge/response handshake.
+      # Leave empty for no-auth local dev; set OPENCLAW_GATEWAY_TOKEN in .env
+      # to require auth (recommended for any non-loopback bind).
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      # Forward OpenRouter key so the gateway can route LLM calls.
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENCLAW_MODEL: ${OPENCLAW_MODEL}
+      # Composio tool layer (optional in Phase 1)
+      COMPOSIO_API_KEY: ${COMPOSIO_API_KEY:-}
+      HOME: /home/node
+      TZ: UTC
+    ports:
+      - "18789:18789"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    init: true
+    restart: unless-stopped
+
+  # ── Pipecat Backend ─────────────────────────────────────────────────────────
+  pipecat-backend:
+    build:
+      context: .
+      dockerfile: voice/Dockerfile
+    env_file:
+      - .env
+    environment:
+      # Point at the gateway service name (Docker DNS)
+      OPENCLAW_GATEWAY_URL: ws://openclaw-gateway:18789
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_DEVICE_AUTH_DISABLED: "true"
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
+      CARTESIA_API_KEY: ${CARTESIA_API_KEY}
+      OPENCLAW_MODEL: ${OPENCLAW_MODEL}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "8000:8000"
+    depends_on:
+      openclaw-gateway:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    init: true
+    restart: unless-stopped
+
+# Phase 2: add a named volume for openclaw-config here to persist device
+# identity and OAuth tokens across container restarts. For Phase 1 the
+# config dir in the container is sufficient.

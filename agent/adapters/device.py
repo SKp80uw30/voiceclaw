@@ -47,7 +47,7 @@ from cryptography.hazmat.primitives.serialization import (
 
 _DEFAULT_IDENTITY_PATH = Path.home() / ".voiceclaw" / "identity" / "device.json"
 
-VOICECLAW_CLIENT_ID = "voiceclaw"
+VOICECLAW_CLIENT_ID = os.getenv("VOICECLAW_CLIENT_ID", "gateway-client")
 VOICECLAW_CLIENT_VERSION = "0.1.0"
 VOICECLAW_PLATFORM = "linux"  # overridden at connect time if needed
 
@@ -90,10 +90,14 @@ def _generate_identity() -> DeviceIdentity:
     private_key = Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
     public_pem = public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode()
-    private_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode()
+    private_pem = private_key.private_bytes(
+        Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
+    ).decode()
     raw = _raw_public_key_bytes(public_key)
     device_id = _device_id_from_raw(raw)
-    return DeviceIdentity(device_id=device_id, public_key_pem=public_pem, private_key_pem=private_pem)
+    return DeviceIdentity(
+        device_id=device_id, public_key_pem=public_pem, private_key_pem=private_pem
+    )
 
 
 # ---------------------------------------------------------------------------

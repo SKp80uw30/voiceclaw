@@ -156,6 +156,65 @@ COMPOSIO_API_KEY=       # optional in Phase 1, required in Phase 2
 
 ---
 
+## Development Notes
+
+### Local dev: WebRTC + Docker Desktop on macOS
+
+**Do NOT run pipecat-backend in Docker for local development on macOS.** Docker Desktop on macOS
+places containers in a VM subnet (`172.19.0.0/16`) that is NOT accessible from the macOS network
+stack. WebRTC ICE candidates advertise the container IP, which the browser can never reach, so
+every WebRTC connection times out after 60 seconds.
+
+**Correct local dev setup** — only the gateway runs in Docker (it only needs TCP 18789):
+
+```bash
+# Terminal 1 — gateway
+docker compose up openclaw-gateway
+
+# Terminal 2 — pipecat server natively (WebRTC ICE finds real macOS IPs)
+cd voice
+PYTHONPATH=/path/to/voiceclaw uv run uvicorn voiceclaw.server:app --host 0.0.0.0 --port 8000
+
+# Terminal 3 — PWA
+cd pwa && npm run dev   # opens http://localhost:5173
+```
+
+The `.env` file already has `OPENCLAW_DEVICE_AUTH_DISABLED=true` so native server connects to
+the gateway without a persistent device identity.
+
+For production (Railway) the full `docker compose up --build` works correctly because the
+server has a routable public IP and UDP connectivity is not blocked.
+
+### Service-to-service auth in Docker
+
+Three settings work together to make the voice server → OpenClaw gateway connection work in
+local Docker dev without persistent device identity:
+
+1. **`agent/adapters/device.py`** sets `VOICECLAW_CLIENT_ID = "openclaw-tui"`. The gateway's
+   `dangerouslyDisableDeviceAuth` bypass only applies to clients whose `client.id` is
+   `"openclaw-control-ui"` or `"openclaw-tui"` (`isOperatorUiClient` check in gateway source).
+   Using `"openclaw-tui"` (the non-browser Control UI identity) causes the gateway to apply the
+   bypass and preserve the self-declared scopes (`operator.read`, `operator.write`). Without
+   this, the gateway silently strips all scopes from device-less token-authenticated clients,
+   making `chat.send` fail with `INVALID_REQUEST: missing scope: operator.write`.
+
+2. **`agent/Dockerfile`** configures the gateway with
+   `gateway.controlUi.dangerouslyDisableDeviceAuth=true` in
+   `/home/node/.openclaw/openclaw.json`. This tells the gateway to skip device-identity
+   signature verification for `isOperatorUiClient` connections on the WS handshake.
+
+3. **`docker-compose.yml`** sets `OPENCLAW_DEVICE_AUTH_DISABLED=true` for the
+   `pipecat-backend` service. This tells the voice server's gateway client to **omit the
+   `device` object entirely** from the connect handshake — because the Ed25519 keypair is
+   freshly generated each container start (no persistent volume), sending it would cause a
+   `DEVICE_AUTH_DEVICE_ID_MISMATCH` error.
+
+Token auth (`OPENCLAW_GATEWAY_TOKEN`) is used for the actual authentication in all cases.
+
+For production (Railway): remove `OPENCLAW_DEVICE_AUTH_DISABLED`, change `VOICECLAW_CLIENT_ID`
+back to `"gateway-client"`, mount a persistent volume for the device identity, and do a
+one-time CLI pairing.
+
 ## Open Questions
 
 Tracked with resolution status in `TODO.md` (Open Questions Log section). Document answers in `docs/architecture/` as resolved.

@@ -1,0 +1,51 @@
+[railway]
+# VoiceClaw — Railway Phase 1
+# Two services: pipecat-backend (voice) + openclaw-gateway (agent)
+# Build context = repo root for both (dockerfile paths below are relative to repo root)
+
+[railway.service.voice]
+# Pipecat FastAPI server — serves PWA + WebRTC offer/answer + SSE state
+dockerfile = "voice/Dockerfile"
+build.context = "."
+# PWA is embedded in the Docker image — no separate build step needed
+# Env vars injected by Railway dashboard (link to .env or set directly)
+variables = [
+  "OPENCLAW_GATEWAY_URL",    # set to https://<agent-service-name>.up.railway.app
+  "OPENCLAW_GATEWAY_TOKEN",  # must match the agent service token
+  "OPENROUTER_API_KEY",
+  "OPENCLAW_MODEL",
+  "DEEPGRAM_API_KEY",
+  "CARTESIA_API_KEY",
+  "LOG_LEVEL",
+]
+# Internal port (must match EXPOSE in Dockerfile)
+internalPort = 8000
+
+[railway.service.voice.variables]
+OPENCLAW_GATEWAY_URL = "ws://agent.railway-app.internal:18789"
+
+[railway.service.agent]
+# OpenClaw gateway — handles LLM routing + tool execution
+dockerfile = "agent/Dockerfile"
+build.context = "./agent"
+variables = [
+  "OPENCLAW_GATEWAY_TOKEN",
+  "OPENROUTER_API_KEY",
+  "OPENCLAW_MODEL",
+  "COMPOSIO_API_KEY",       # optional in Phase 1
+]
+internalPort = 18789
+
+# ── Persistent volumes ────────────────────────────────────────────────────────
+
+[railway.service.voice.volume]
+mountPath = "/home/node/.voiceclaw"
+description = "Device identity (Ed25519 keypair) — survives restarts"
+
+[railway.service.agent.volume]
+mountPath = "/home/node/.openclaw"
+description = "Gateway config + runtime state"
+
+# ── Networking ────────────────────────────────────────────────────────────────
+# Agent service is internal to Railway (no public URL needed for Phase 1).
+# Voice service is public (serves the PWA at a Railway-provided URL).

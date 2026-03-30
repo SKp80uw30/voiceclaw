@@ -60,8 +60,8 @@ async def create_connection(
 
 def create_transport(
     connection: SmallWebRTCConnection,
-    on_connected: Optional[Callable[[SmallWebRTCConnection], Awaitable[None]]] = None,
-    on_disconnected: Optional[Callable[[SmallWebRTCConnection], Awaitable[None]]] = None,
+    on_connected: Optional[Callable[..., Awaitable[None]]] = None,
+    on_disconnected: Optional[Callable[..., Awaitable[None]]] = None,
 ) -> SmallWebRTCTransport:
     """Create a SmallWebRTCTransport with VoiceClaw's standard params.
 

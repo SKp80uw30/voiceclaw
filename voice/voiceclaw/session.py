@@ -1,5 +1,5 @@
 #
-# VoiceClaw — agent/adapters/session.py
+# VoiceClaw — voice/voiceclaw/session.py
 # SPDX-License-Identifier: MIT
 #
 
@@ -19,14 +19,31 @@ Responsibilities:
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import Optional
 
 from loguru import logger
 
-from .device import DeviceIdentity, load_or_create_identity
-from .gateway import OpenClawGatewayClient
-from .skills import load_skills
+# ---------------------------------------------------------------------------
+# Try to import the agent package; fall back to a clear error if unavailable.
+# The agent package is a sibling to voice/ in the repo and is only needed
+# inside the Docker container where both PYTHONPATH entries are present.
+# ---------------------------------------------------------------------------
+
+try:
+    from agent.adapters.device import (
+        DeviceIdentity,
+        load_or_create_identity,
+    )
+    from agent.adapters.gateway import OpenClawGatewayClient
+    from agent.adapters.skills import load_skills
+except ImportError as exc:
+    raise ImportError(
+        "Could not import the agent package. "
+        "Ensure the repo root is on PYTHONPATH and the agent package is available. "
+        "In Docker: voice service has PYTHONPATH=/app:/app/agent."
+    ) from exc
 
 
 def _session_key_from_connection_id(connection_id: str) -> str:
