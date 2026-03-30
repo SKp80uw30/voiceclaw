@@ -15,8 +15,6 @@
 services:
 
   # ── OpenClaw Gateway ────────────────────────────────────────────────────────
-  # Must start before pipecat-backend so the WebSocket endpoint is ready when
-  # the voice server accepts its first WebRTC connection.
   openclaw-gateway:
     build:
       context: ./agent
@@ -24,14 +22,9 @@ services:
     env_file:
       - .env
     environment:
-      # Gateway token for the challenge/response handshake.
-      # Leave empty for no-auth local dev; set OPENCLAW_GATEWAY_TOKEN in .env
-      # to require auth (recommended for any non-loopback bind).
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-      # Forward OpenRouter key so the gateway can route LLM calls.
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       OPENCLAW_MODEL: ${OPENCLAW_MODEL}
-      # Composio tool layer (optional in Phase 1)
       COMPOSIO_API_KEY: ${COMPOSIO_API_KEY:-}
       HOME: /home/node
       TZ: UTC
@@ -58,7 +51,6 @@ services:
     env_file:
       - .env
     environment:
-      # Point at the gateway service name (Docker DNS)
       OPENCLAW_GATEWAY_URL: ws://openclaw-gateway:18789
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
       OPENCLAW_DEVICE_AUTH_DISABLED: "true"
@@ -84,7 +76,3 @@ services:
       start_period: 20s
     init: true
     restart: unless-stopped
-
-# Phase 2: add a named volume for openclaw-config here to persist device
-# identity and OAuth tokens across container restarts. For Phase 1 the
-# config dir in the container is sufficient.
