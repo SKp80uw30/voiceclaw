@@ -60,7 +60,7 @@ COPY upstream/openclaw/ui/package.json ./ui/package.json
 COPY upstream/openclaw/patches ./patches
 COPY --from=ext-deps /out/ ./extensions/
 
-RUN --mount=type=cache,id=openclaw-pnpm-store,target=/root/.local/share/pnpm/store,sharing=locked \
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
     NODE_OPTIONS=--max-old-space-size=2048 pnpm install --frozen-lockfile
 
 # Copy full source (after deps to benefit from layer cache)
@@ -100,8 +100,8 @@ FROM ${OPENCLAW_NODE_SLIM_IMAGE} AS runtime
 
 ARG OPENCLAW_DOCKER_APT_UPGRADE
 
-RUN --mount=type=cache,id=openclaw-bookworm-apt-cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=openclaw-bookworm-apt-lists,target=/var/lib/apt,sharing=locked \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
     if [ "${OPENCLAW_DOCKER_APT_UPGRADE}" != "0" ]; then \
       DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends; \
