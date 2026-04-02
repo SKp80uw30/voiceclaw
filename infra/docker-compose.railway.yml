@@ -47,8 +47,8 @@ services:
       context: .
       dockerfile: voice/Dockerfile
     environment:
-      # Railway internal DNS: <service-name>.railway-app.internal
-      OPENCLAW_GATEWAY_URL: ws://agent.railway-app.internal:18789
+      # Railway internal DNS: <service-name>.railway.internal
+      OPENCLAW_GATEWAY_URL: ws://agent.railway.internal:18789
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
       # No OPENCLAW_DEVICE_AUTH_DISABLED — device auth is required in production
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
