@@ -1,66 +1,24 @@
-# VoiceClaw — docker-compose.railway.yml
+# VoiceClaw — infra/docker-compose.railway.yml
 # Railway production stack. Assumes Railway supplies env vars via dashboard.
-#
-# Key differences from local docker-compose.yml:
-#   - No OPENCLAW_DEVICE_AUTH_DISABLED  (use proper device auth in production)
-#   - OPENCLAW_GATEWAY_URL uses Railway internal DNS, not Docker service name
-#   - Named volumes persist device identity and gateway config
 #
 # Usage (from repo root):
 #   docker compose -f infra/docker-compose.railway.yml build
-#   docker compose -f infra/docker-compose.railway.yml push   # if using remote builder
 
 services:
 
-  # ── OpenClaw Gateway ────────────────────────────────────────────────────────
-  agent:
-    build:
-      context: ./agent
-      dockerfile: Dockerfile
-    environment:
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      OPENCLAW_MODEL: ${OPENCLAW_MODEL}
-      COMPOSIO_API_KEY: ${COMPOSIO_API_KEY:-}
-      HOME: /home/node
-      TZ: UTC
-    expose:
-      - "18789"
-    healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    init: true
-    restart: unless-stopped
-    volumes:
-      - openclaw-data:/home/node/.openclaw
-
   # ── Pipecat Backend ─────────────────────────────────────────────────────────
-  voice:
+  pipecat-backend:
     build:
       context: .
       dockerfile: voice/Dockerfile
     environment:
-      # Railway internal DNS: <service-name>.railway.internal
-      OPENCLAW_GATEWAY_URL: ws://agent.railway.internal:18789
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
-      # No OPENCLAW_DEVICE_AUTH_DISABLED — device auth is required in production
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      OPENCLAW_MODEL: ${OPENCLAW_MODEL}
+      LLM_MODEL: ${LLM_MODEL}
       DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
       CARTESIA_API_KEY: ${CARTESIA_API_KEY}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     expose:
       - "8000"
-    depends_on:
-      agent:
-        condition: service_healthy
     healthcheck:
       test:
         - CMD
@@ -73,12 +31,3 @@ services:
       start_period: 20s
     init: true
     restart: unless-stopped
-    volumes:
-      - voiceclaw-identity:/home/node/.voiceclaw
-
-volumes:
-  # Persists device Ed25519 keypair across voice service restarts.
-  # Without this, a new keypair is generated on every start, breaking device auth.
-  voiceclaw-identity:
-  # Persists gateway runtime state (device registry, sessions, etc.)
-  openclaw-data:

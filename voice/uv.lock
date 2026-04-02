@@ -1227,6 +1227,9 @@ deepgram = [
     { name = "deepgram-sdk" },
     { name = "websockets" },
 ]
+openai = [
+    { name = "websockets" },
+]
 webrtc = [
     { name = "aiortc" },
     { name = "opencv-python" },
@@ -2148,7 +2151,7 @@ source = { editable = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "loguru" },
-    { name = "pipecat-ai", extra = ["cartesia", "deepgram", "webrtc"] },
+    { name = "pipecat-ai", extra = ["cartesia", "deepgram", "openai", "webrtc"] },
     { name = "python-dotenv" },
 ]
 
@@ -2163,7 +2166,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115" },
     { name = "loguru", specifier = ">=0.7" },
-    { name = "pipecat-ai", extras = ["webrtc", "deepgram", "cartesia", "silero"], directory = "upstream/pipecat" },
+    { name = "pipecat-ai", extras = ["webrtc", "deepgram", "cartesia", "silero", "openai"], directory = "upstream/pipecat" },
     { name = "python-dotenv", specifier = ">=1.0" },
 ]
 

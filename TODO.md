@@ -64,19 +64,16 @@
 
 ### 1.6 — Local Dev
 
-- [x] `docker-compose.yml` at repo root
-  - `pipecat-backend` service: `./voice`, port 8000
-  - `openclaw-gateway` service: `./agent`, port 18789
-  - Both consume `.env`
+- [x] `docker-compose.yml` at repo root — single `pipecat-backend` service, port 8000
 - [x] `voice/Dockerfile`
-- [x] `agent/Dockerfile`
 - [x] Smoke test: `docker compose up` → no errors, PWA loads at `http://localhost:8000`
 
 ### 1.7 — Railway Phase 1
 
-- [x] `infra/railway.toml` — two-service config, persistent volumes, Railway internal DNS
-- [x] `infra/docker-compose.railway.yml` — production compose (no DEVICE_AUTH_DISABLED, proper device identity)
-- [ ] Deploy to Railway and verify deploy button works
+- [x] `railway.json` — single-service config pointing at `voice/Dockerfile`
+- [x] `infra/docker-compose.railway.yml` — production compose (single service)
+- [x] OpenClaw removed — replaced by direct OpenRouter LLM call in Pipecat pipeline
+- [ ] Deploy to Railway and verify `pipecat-backend` builds and serves the PWA
 
 ### Phase 1 Acceptance Criteria
 

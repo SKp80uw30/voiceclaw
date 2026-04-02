@@ -10,38 +10,8 @@
 #
 # Services:
 #   pipecat-backend  — FastAPI + Pipecat voice pipeline  → http://localhost:8000
-#   openclaw-gateway — OpenClaw agent gateway            → ws://localhost:18789
 
 services:
-
-  # ── OpenClaw Gateway ────────────────────────────────────────────────────────
-  openclaw-gateway:
-    build:
-      context: ./agent
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    environment:
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      OPENCLAW_MODEL: ${OPENCLAW_MODEL}
-      COMPOSIO_API_KEY: ${COMPOSIO_API_KEY:-}
-      HOME: /home/node
-      TZ: UTC
-    ports:
-      - "18789:18789"
-    healthcheck:
-      test:
-        - CMD
-        - node
-        - -e
-        - "fetch('http://127.0.0.1:18789/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    init: true
-    restart: unless-stopped
 
   # ── Pipecat Backend ─────────────────────────────────────────────────────────
   pipecat-backend:
@@ -51,19 +21,13 @@ services:
     env_file:
       - .env
     environment:
-      OPENCLAW_GATEWAY_URL: ws://openclaw-gateway:18789
-      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
-      OPENCLAW_DEVICE_AUTH_DISABLED: "true"
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       DEEPGRAM_API_KEY: ${DEEPGRAM_API_KEY}
       CARTESIA_API_KEY: ${CARTESIA_API_KEY}
-      OPENCLAW_MODEL: ${OPENCLAW_MODEL}
+      LLM_MODEL: ${LLM_MODEL}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "8000:8000"
-    depends_on:
-      openclaw-gateway:
-        condition: service_healthy
     healthcheck:
       test:
         - CMD

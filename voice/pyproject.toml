@@ -5,7 +5,7 @@ description = "VoiceClaw voice pipeline — Pipecat adapter layer and FastAPI se
 requires-python = ">=3.12,<3.14"
 dependencies = [
     # pipecat-ai source is declared in [tool.uv.sources] below
-    "pipecat-ai[webrtc,deepgram,cartesia,silero]",
+    "pipecat-ai[webrtc,deepgram,cartesia,silero,openai]",
     "fastapi[standard]>=0.115",
     "loguru>=0.7",
     "python-dotenv>=1.0",
