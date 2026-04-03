@@ -23,6 +23,23 @@ from __future__ import annotations
 import asyncio
 import os
 from contextlib import asynccontextmanager
+
+# ── Disable aioice mDNS ───────────────────────────────────────────────────────
+# aioice tries to create an mDNS socket on startup for candidate resolution.
+# On Linux (Railway), this crashes with CancelledError because multicast
+# sockets are not available in most container environments.
+# Stub out the two mDNS functions before anything imports aioice.
+import aioice.ice as _aioice_ice
+
+async def _noop_get_mdns(*_a, **_kw):
+    return None
+
+async def _noop_unref_mdns(*_a, **_kw):
+    pass
+
+_aioice_ice.get_or_create_mdns_protocol = _noop_get_mdns
+_aioice_ice.unref_mdns_protocol = _noop_unref_mdns
+# ─────────────────────────────────────────────────────────────────────────────
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Annotated, Any, AsyncGenerator
